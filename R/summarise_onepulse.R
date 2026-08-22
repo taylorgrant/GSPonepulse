@@ -31,7 +31,7 @@
 #' summarise_onepulse(data, "q_1")
 #' summarise_onepulse(data, "q_2")
 #' }
-summarise_onepulse <- function(data, q) {
+summarise_onepulse <- function(data, q, box = FALSE) {
   cols <- names(data)[
     names(data) == q |
       startsWith(names(data), paste0(q, "_"))
@@ -57,7 +57,12 @@ summarise_onepulse <- function(data, q) {
         answer = match_likert(
           answer,
           likert_dictionary
-        )
+        ),
+        answer = if (box && length(cols) == 1) {
+          collapse_likert(answer)
+        } else {
+          answer
+        }
       ) |>
       dplyr::count(answer) |>
       dplyr::mutate(

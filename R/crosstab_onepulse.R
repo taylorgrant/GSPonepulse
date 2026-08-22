@@ -46,7 +46,7 @@
 #' result$table
 #' result$bases
 #' }
-crosstab_onepulse <- function(data, q, cross, alpha = 0.05) {
+crosstab_onepulse <- function(data, q, cross, alpha = 0.05, box = FALSE) {
   cols <- names(data)[
     names(data) == q |
       startsWith(names(data), paste0(q, "_"))
@@ -86,7 +86,12 @@ crosstab_onepulse <- function(data, q, cross, alpha = 0.05) {
         answer = match_likert(
           answer,
           likert_dictionary
-        )
+        ),
+        answer = if (box) {
+          collapse_likert(answer)
+        } else {
+          answer
+        }
       ) |>
       dplyr::count(
         !!rlang::sym(cross),
