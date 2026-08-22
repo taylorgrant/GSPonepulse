@@ -80,6 +80,48 @@ enrich_onepulse <- function(data) {
       dplyr::relocate(`Age Decile`, .after = "Generation")
   }
 
+  if ("Education" %in% colnames(data)) {
+    data <- data |>
+      dplyr::mutate(
+        `Education group` = dplyr::case_when(
+          Education %in%
+            c(
+              "Some high school",
+              "High school diploma or GED"
+            ) ~ "High school or less",
+
+          Education %in%
+            c(
+              "Some college",
+              "Associate degree"
+            ) ~ "Some college / Associate",
+
+          Education == "Bachelor's degree" ~
+            "Bachelor's degree",
+
+          Education %in%
+            c(
+              "Master's degree",
+              "Doctorate",
+              "Professional"
+            ) ~ "Postgraduate degree",
+
+          TRUE ~ NA_character_
+        ),
+        `Education group` = factor(
+          `Education group`,
+          levels = c(
+            "High school or less",
+            "Some college / Associate",
+            "Bachelor's degree",
+            "Postgraduate degree"
+          ),
+          ordered = TRUE
+        )
+      ) |>
+      dplyr::relocate(`Education group`, .after = Education)
+  }
+
   if ("Parent" %in% colnames(data)) {
     data <- data |>
       dplyr::mutate(
@@ -90,7 +132,7 @@ enrich_onepulse <- function(data) {
   if ("Political Views" %in% colnames(data)) {
     data <- data |>
       dplyr::mutate(
-        partisanship = dplyr::case_when(
+        Partisanship = dplyr::case_when(
           stringr::str_detect(
             `Political Views`,
             "Conservative"
@@ -98,12 +140,12 @@ enrich_onepulse <- function(data) {
           stringr::str_detect(`Political Views`, "Liberal") ~ "Liberal",
           TRUE ~ "Centrist"
         ),
-        partisanship = factor(
-          partisanship,
+        Partisanship = factor(
+          Partisanship,
           levels = c("Conservative", "Centrist", "Liberal")
         )
       ) |>
-      dplyr::relocate(partisanship, .after = `Political Views`)
+      dplyr::relocate(Partisanship, .after = `Political Views`)
   }
 
   if ("Home location" %in% colnames(data)) {
@@ -176,4 +218,6 @@ enrich_onepulse <- function(data) {
         )
       )
   }
+
+  data
 }
