@@ -1,0 +1,276 @@
+---
+output: github_document
+---
+
+# GSPonepulse
+
+`GSPonepulse` provides a standardized workflow for importing, cleaning, enriching, analyzing, and exporting survey data from OnePulse.
+
+The package is designed to reduce repetitive survey-processing work and create consistent outputs across OnePulse studies.
+
+## Installation
+
+Install the development version from GitHub:
+
+```r
+# install.packages("remotes")
+remotes::install_github("taylorgrant/GSPonepulse")
+```
+
+Then load the package:
+
+```r
+library(GSPonepulse)
+```
+
+## Standard workflow
+
+A typical OnePulse analysis follows four steps:
+
+```r
+library(GSPonepulse)
+
+# 1. Read the OnePulse export
+raw <- read_onepulse("data/survey.csv")
+
+# 2. Add standardized demographic variables
+data <- enrich_onepulse(data)
+
+# 3. Clean question names and create the question table of contents
+clean <- clean_onepulse(raw)
+
+data <- clean$data
+toc  <- clean$toc
+
+# 4. Create Excel summary tables
+write_onepulse(
+  data,
+  questions = paste0("q_", 1:6),
+  cross_vars = c(
+    "Gender",
+    "Age Decile"
+  ),
+  file = "output/OnePulse_tables.xlsx"
+)
+```
+
+## Reading OnePulse data
+
+`read_onepulse()` reads OnePulse CSV exports and removes the export metadata rows before importing the respondent-level data.
+
+```r
+data <- read_onepulse("survey.csv")
+```
+
+Multiple compatible exports can also be combined:
+
+```r
+data <- read_onepulse(
+  c(
+    "survey_part1.csv",
+    "survey_part2.csv"
+  )
+)
+```
+
+When multiple files are supplied, their column structures are checked before they are combined.
+
+Survey metadata, including the survey year, is retained for use by downstream functions.
+
+## Enriching demographics
+
+`enrich_onepulse()` creates standardized analysis variables from the demographic fields included in OnePulse exports.
+
+```r
+data <- enrich_onepulse(data)
+```
+
+Derived variables include commonly used demographic groupings such as age, generation, household income, political orientation, and other analysis-ready classifications.
+
+Generation is calculated using the survey year captured by `read_onepulse()` rather than the current calendar year.
+
+## Cleaning survey data
+
+`clean_onepulse()` converts OnePulse question names into standardized identifiers.
+
+For example:
+
+```text
+Q(1) Before today; how familiar were you...
+```
+
+becomes:
+
+```text
+q_1
+```
+
+and multi-select questions such as:
+
+```text
+Q(2_1) Innovative[Question: ...]
+Q(2_2) Convenient[Question: ...]
+Q(2_3) Exciting[Question: ...]
+```
+
+become:
+
+```text
+q_2_1
+q_2_2
+q_2_3
+```
+
+The function returns a named list:
+
+```r
+clean <- clean_onepulse(data)
+
+data <- clean$data
+toc  <- clean$toc
+```
+
+`toc` contains a de-duplicated table of question numbers and question wording.
+
+
+## Summarizing questions
+
+`summarise_onepulse()` creates an overall summary for either a single-select or multi-select question.
+
+```r
+summarise_onepulse(
+  data,
+  "q_1"
+)
+```
+
+For multi-select questions, pass the question stem rather than an individual response column:
+
+```r
+summarise_onepulse(
+  data,
+  "q_2"
+)
+```
+
+The function automatically identifies all columns beginning with `q_2_`.
+
+For single-select questions, percentages sum to 100%.
+
+For multi-select questions, each percentage represents the proportion of respondents selecting that option, so percentages may sum to more than 100%.
+
+### Likert scales
+
+Known Likert-style response scales are automatically recognized and displayed in their intended ordinal order.
+
+For example:
+
+```text
+Strongly disagree
+Disagree
+Neutral
+Agree
+Strongly agree
+```
+
+The package maintains an internal dictionary of common agreement, familiarity, satisfaction, importance, frequency, likelihood, confidence, trust, safety, comfort, interest, appeal, relevance, believability, and other ordinal response scales.
+
+## Creating crosstabs
+
+`crosstab_onepulse()` creates a crosstab using a single-select grouping variable.
+
+```r
+result <- crosstab_onepulse(
+  data,
+  "q_2",
+  "Gender"
+)
+
+result$table
+```
+
+The function supports both single-select and multi-select survey questions.
+
+The returned object contains:
+
+```r
+result$table
+result$sig
+result$letters
+result$bases
+```
+
+### Significance testing
+
+Pairwise proportion tests are conducted within each response option.
+
+P-values are adjusted using the Holm method, with a default significance threshold of:
+
+```r
+alpha = 0.05
+```
+
+Significant differences are shown using column lettering.
+
+For example:
+
+```text
+            A       B       C
+            Male    Female  Other
+
+Safe        35%     48% A   42%
+```
+
+`48% A` indicates that the value in column B is significantly higher than the value in column A.
+
+The significance threshold can be changed if needed:
+
+```r
+crosstab_onepulse(
+  data,
+  "q_2",
+  "Gender",
+  alpha = 0.10
+)
+```
+
+## Writing Excel tables
+
+`write_onepulse()` creates a formatted Excel workbook containing the requested survey questions. When passing question numbers to `write_onepulse()` don't pass through open end questions.
+
+For example, if `q_4` is an open end, then you would pass: `questions = paste0("q_", c(1:3,5:6))`
+
+```r
+write_onepulse(
+  data,
+  questions = paste0("q_", 1:6),
+  cross_vars = c(
+    "Gender",
+    "Age Decile",
+    "Generation"
+  ),
+  file = "OnePulse_tables.xlsx"
+)
+```
+
+Each question receives its own worksheet.
+
+Within each worksheet, the output includes:
+
+1. Overall response summary
+2. One table for each requested crosstab
+3. Column-letter keys for significance testing
+4. Respondent base sizes for each crosstab group
+
+## Main functions
+
+| Function | Purpose |
+|---|---|
+| `read_onepulse()` | Import one or more OnePulse CSV exports |
+| `clean_onepulse()` | Standardize survey question names and create a question TOC |
+| `enrich_onepulse()` | Create standardized demographic groupings |
+| `summarise_onepulse()` | Summarize single- or multi-select questions |
+| `crosstab_onepulse()` | Create crosstabs with significance testing |
+| `write_onepulse()` | Export formatted survey tables to Excel |
+
+
