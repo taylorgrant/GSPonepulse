@@ -59,13 +59,13 @@ write_onepulse(
 metadata rows before importing the respondent-level data.
 
 ``` r
-data <- read_onepulse("survey.csv")
+raw <- read_onepulse("survey.csv")
 ```
 
 Multiple compatible exports can also be combined:
 
 ``` r
-data <- read_onepulse(
+raw <- read_onepulse(
   c(
     "survey_part1.csv",
     "survey_part2.csv"
@@ -85,7 +85,7 @@ downstream functions.
 demographic fields included in OnePulse exports.
 
 ``` r
-data <- enrich_onepulse(data)
+raw_enriched <- enrich_onepulse(raw)
 ```
 
 Derived variables include commonly used demographic groupings such as
@@ -131,7 +131,7 @@ q_2_3
 The function returns a named list:
 
 ``` r
-clean <- clean_onepulse(data)
+clean <- clean_onepulse(raw_enriched)
 
 data <- clean$data
 toc  <- clean$toc
