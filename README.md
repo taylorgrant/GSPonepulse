@@ -199,7 +199,7 @@ variable.
 result <- crosstab_onepulse(
   data,
   "q_2",
-  "Gender"
+  "gender"
 )
 
 result$table
@@ -248,7 +248,7 @@ The significance threshold can be changed if needed:
 crosstab_onepulse(
   data,
   "q_2",
-  "Gender",
+  "gender",
   alpha = 0.10
 )
 ```
@@ -267,9 +267,9 @@ write_onepulse(
   data,
   questions = paste0("q_", 1:6),
   cross_vars = c(
-    "Gender",
-    "Age Decile",
-    "Generation"
+    "gender",
+    "age_decile",
+    "generation"
   ),
   file = "OnePulse_tables.xlsx"
 )
