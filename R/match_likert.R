@@ -60,3 +60,25 @@ match_likert <- function(x, likert_dictionary) {
     x_clean
   }
 }
+
+collapse_likert <- function(x) {
+  # Not a recognized five-point Likert scale:
+  # return the answers unchanged
+  if (!is.ordered(x) || nlevels(x) != 5) {
+    return(x)
+  }
+
+  dplyr::case_when(
+    as.integer(x) >= 4 ~ "Top 2 Box",
+    as.integer(x) == 3 ~ "Middle",
+    as.integer(x) <= 2 ~ "Bottom 2 Box"
+  ) |>
+    factor(
+      levels = c(
+        "Top 2 Box",
+        "Middle",
+        "Bottom 2 Box"
+      ),
+      ordered = TRUE
+    )
+}
