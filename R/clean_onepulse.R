@@ -88,6 +88,7 @@ clean_onepulse <- function(data) {
       dplyr::arrange(q_num) |>
 
       dplyr::transmute(
+        q = paste0('q_', q_num),
         question = paste0(
           "Q",
           q_num,
@@ -98,6 +99,8 @@ clean_onepulse <- function(data) {
   }
 
   svy_q <- question_toc(data)
+
+  attr(survey, "question_toc") <- svy_q
 
   list(survey = survey, svy_q = svy_q)
 }
