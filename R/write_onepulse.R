@@ -24,14 +24,22 @@
 #' write_onepulse(
 #'   data,
 #'   questions = paste0("q_", 1:6),
-#'   cross_vars = c("Gender", "Age Decile"),
-#'   file = "OnePulse_tables.xlsx"
+#'   cross_vars = c("gender", "age_decile"),
+#'   file = "OnePulse_tables.xlsx",
+#'   box = FALSE
 #' )
 #' }
-write_onepulse <- function(data, questions, cross_vars, file) {
+write_onepulse <- function(data, questions, cross_vars, file, box = FALSE) {
   wb <- openxlsx::createWorkbook()
 
   # Styles ---------------------------------------------------
+
+  question_style <- openxlsx::createStyle(
+    textDecoration = "bold",
+    fontSize = 14,
+    wrapText = TRUE,
+    valign = "center"
+  )
 
   title_style <- openxlsx::createStyle(
     textDecoration = "bold",
@@ -60,15 +68,74 @@ write_onepulse <- function(data, questions, cross_vars, file) {
     border = "Top"
   )
 
+  # Retrieve TOC -------------------------------------------
+  question_toc <- attr(
+    data,
+    "question_toc"
+  )
+
   # Write workbook -------------------------------------------
 
   for (q in questions) {
+    # should answers be boxed
+    use_box <- if (is.character(box)) {
+      q %in% box
+    } else {
+      box
+    }
+
     openxlsx::addWorksheet(
       wb,
       sheetName = q
     )
 
-    current_row <- 1
+    # Find full question wording -------------------------------
+
+    question_title <- q
+
+    if (!is.null(question_toc)) {
+      matched_question <- question_toc |>
+        dplyr::filter(.data$q == !!q) |>
+        dplyr::pull(.data$question)
+
+      if (length(matched_question) == 1) {
+        question_title <- matched_question
+      }
+    }
+
+    # Write question wording ----------------------------------
+
+    openxlsx::writeData(
+      wb,
+      sheet = q,
+      x = question_title,
+      startRow = 1,
+      startCol = 1
+    )
+
+    openxlsx::mergeCells(
+      wb,
+      sheet = q,
+      cols = 1:6,
+      rows = 1
+    )
+
+    openxlsx::addStyle(
+      wb,
+      sheet = q,
+      style = question_style,
+      rows = 1,
+      cols = 1
+    )
+
+    openxlsx::setRowHeights(
+      wb,
+      sheet = q,
+      rows = 1,
+      heights = 36
+    )
+
+    current_row <- 3
 
     # Overall summary ----------------------------------------
 
@@ -89,7 +156,7 @@ write_onepulse <- function(data, questions, cross_vars, file) {
 
     current_row <- current_row + 1
 
-    overall <- summarise_onepulse(data, q)
+    overall <- summarise_onepulse(data, q, box = use_box)
 
     openxlsx::writeData(
       wb,
@@ -128,7 +195,8 @@ write_onepulse <- function(data, questions, cross_vars, file) {
       result <- crosstab_onepulse(
         data,
         q,
-        cross
+        cross,
+        box = use_box
       )
 
       tab <- result$table
