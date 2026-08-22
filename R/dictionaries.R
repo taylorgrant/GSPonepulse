@@ -42,6 +42,14 @@ likert_dictionary <- list(
     "Strongly agree"
   ),
 
+  Agreement5 = c(
+    "Disagree completely",
+    "Disagree somewhat",
+    "Unsure",
+    "Agree somewhat",
+    "Agree completely"
+  ),
+
   # Familiarity / awareness ---------------------------------
 
   Familiarity = c(
