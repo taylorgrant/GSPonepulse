@@ -367,10 +367,17 @@ crosstab_onepulse <- function(data, q, cross, alpha = 0.05, box = FALSE) {
 
   # Return --------------------------------------------------
 
-  list(
+  result <- list(
     table = display,
     sig = sig,
     letters = group_lookup,
     bases = bases
   )
+
+  attr(
+    result,
+    "confidence_level"
+  ) <- 1 - alpha
+
+  result
 }
