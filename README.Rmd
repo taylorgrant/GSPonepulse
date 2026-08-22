@@ -34,10 +34,10 @@ library(GSPonepulse)
 raw <- read_onepulse("data/survey.csv")
 
 # 2. Add standardized demographic variables
-data <- enrich_onepulse(data)
+raw_enriched <- enrich_onepulse(raw)
 
 # 3. Clean question names and create the question table of contents
-clean <- clean_onepulse(raw)
+clean <- clean_onepulse(raw_enriched)
 
 data <- clean$data
 toc  <- clean$toc
