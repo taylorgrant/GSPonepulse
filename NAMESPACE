@@ -3,6 +3,7 @@
 export(clean_onepulse)
 export(crosstab_onepulse)
 export(enrich_onepulse)
+export(gt_onepulse)
 export(read_onepulse)
 export(summarise_onepulse)
 export(write_onepulse)
