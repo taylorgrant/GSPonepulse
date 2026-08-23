@@ -4,7 +4,7 @@
 \alias{summarise_onepulse}
 \title{Summarise a OnePulse Survey Question}
 \usage{
-summarise_onepulse(data, q)
+summarise_onepulse(data, q, box = FALSE)
 }
 \arguments{
 \item{data}{A cleaned OnePulse survey data frame, typically created by
@@ -12,13 +12,19 @@ summarise_onepulse(data, q)
 
 \item{q}{A character string identifying the question to summarize, such
 as \code{"q_1"} or \code{"q_2"}.}
+
+\item{box}{Logical. If \code{TRUE}, recognized five-point Likert scales in
+single-select questions are collapsed into \verb{Top 2 Box}, \code{Middle}, and
+\verb{Bottom 2 Box}. Defaults to \code{FALSE}.}
 }
 \value{
 A tibble containing:
 \describe{
-\item{answer}{The response option.}
-\item{n}{The number of respondents selecting the response option.}
-\item{frac}{The proportion of respondents selecting the response option.}
+\item{answer}{The response option or collapsed box category.}
+\item{n}{The number of respondents selecting the response option or
+falling within the box category.}
+\item{frac}{The proportion of respondents selecting the response option
+or falling within the box category.}
 \item{total}{The respondent base used to calculate the proportion.}
 }
 }
@@ -33,11 +39,15 @@ represent the share of respondents selecting each option and may therefore
 sum to more than 100 percent.
 
 Known Likert scales are automatically detected and displayed in their
-intended ordinal order.
+intended ordinal order. When \code{box = TRUE}, recognized five-point Likert
+scales in single-select questions are collapsed into \verb{Top 2 Box}, \code{Middle},
+and \verb{Bottom 2 Box}. Unrecognized scales and multi-select questions are
+returned in their original format.
 }
 \examples{
 \dontrun{
 summarise_onepulse(data, "q_1")
 summarise_onepulse(data, "q_2")
+summarise_onepulse(data, "q_2", box = TRUE)
 }
 }
