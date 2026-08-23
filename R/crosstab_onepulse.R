@@ -5,22 +5,30 @@
 #' are supported.
 #'
 #' For each response option, pairwise proportion tests are conducted across
-#' crosstab groups. P-values are adjusted for multiple comparisons using the
-#' Holm method. Significant differences are displayed using column letters,
-#' where a letter indicates that the proportion is significantly higher than
-#' the proportion in the referenced column.
+#' crosstab groups. P-values are adjusted for multiple comparisons within
+#' each response option using the Holm method. Significant differences are
+#' displayed using column letters, where a letter indicates that the
+#' proportion is significantly higher than the proportion in the referenced
+#' column.
 #'
 #' Known Likert scales are automatically detected and displayed in their
-#' intended ordinal order.
+#' intended ordinal order. When `box = TRUE`, recognized five-point Likert
+#' scales in single-select questions are collapsed into `Top 2 Box`, `Middle`,
+#' and `Bottom 2 Box` before the significance tests are conducted.
+#' Unrecognized scales and multi-select questions are returned in their
+#' original format.
 #'
 #' @param data A cleaned OnePulse survey data frame, typically created by
 #'   [clean_onepulse()].
-#' @param q A character string identifying the question to summarize, such
+#' @param q A character string identifying the question to tabulate, such
 #'   as `"q_1"` or `"q_2"`.
 #' @param cross A character string identifying the single-select variable
 #'   to use as the crosstab, such as `"Gender"` or `"Age Decile"`.
 #' @param alpha Numeric significance level used for pairwise proportion
 #'   tests. Defaults to `0.05`.
+#' @param box Logical. If `TRUE`, recognized five-point Likert scales in
+#'   single-select questions are collapsed into `Top 2 Box`, `Middle`, and
+#'   `Bottom 2 Box`. Defaults to `FALSE`.
 #'
 #' @return A named list containing:
 #' \describe{
@@ -32,6 +40,9 @@
 #'   letters.}
 #'   \item{bases}{The respondent base size for each crosstab group.}
 #' }
+#'
+#' The returned list has a `confidence_level` attribute equal to
+#' `1 - alpha`.
 #'
 #' @export
 #'
@@ -45,6 +56,16 @@
 #'
 #' result$table
 #' result$bases
+#'
+#' boxed_result <- crosstab_onepulse(
+#'   data,
+#'   "q_3",
+#'   "Age Decile",
+#'   box = TRUE
+#' )
+#'
+#' boxed_result$table
+#' attr(boxed_result, "confidence_level")
 #' }
 crosstab_onepulse <- function(data, q, cross, alpha = 0.05, box = FALSE) {
   cols <- names(data)[
