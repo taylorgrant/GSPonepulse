@@ -3,17 +3,33 @@
 #' Creates an Excel workbook containing overall summaries and crosstabs for
 #' selected OnePulse survey questions.
 #'
-#' Each question is written to its own worksheet. The worksheet contains an
-#' overall summary followed by one table for each requested crosstab variable.
-#' Crosstab tables include significance lettering and respondent base sizes.
+#' Each question is written to its own worksheet. When question wording is
+#' available in the `question_toc` attribute created by [clean_onepulse()],
+#' the full question wording is displayed at the top of the worksheet.
+#' Otherwise, the question identifier is displayed.
+#'
+#' Each worksheet contains an overall summary followed by one table for each
+#' requested crosstab variable. Crosstab tables include significance lettering
+#' and respondent base sizes.
+#'
+#' Recognized five-point Likert questions can optionally be collapsed into
+#' `Top 2 Box`, `Middle`, and `Bottom 2 Box`. Boxing can be applied to every
+#' selected question or only to specified question identifiers. Unrecognized
+#' scales and multi-select questions retain their original response format.
 #'
 #' @param data A cleaned OnePulse survey data frame, typically created by
-#'   [clean_onepulse()] and optionally [enrich_onepulse()].
+#'   [clean_onepulse()] and optionally processed with [enrich_onepulse()].
 #' @param questions A character vector of question identifiers to include,
 #'   such as `c("q_1", "q_2", "q_3")`.
 #' @param cross_vars A character vector of single-select variables to use as
 #'   crosstabs, such as `c("Gender", "Age Decile")`.
-#' @param file A character string giving the output path for the Excel workbook.
+#' @param file A character string giving the output path for the Excel
+#'   workbook. An existing file at the same location is overwritten.
+#' @param box Either a single logical value or a character vector of question
+#'   identifiers. If `TRUE`, all recognized five-point Likert questions are
+#'   collapsed into `Top 2 Box`, `Middle`, and `Bottom 2 Box`. If a character
+#'   vector is supplied, only the specified questions are collapsed. Defaults
+#'   to `FALSE`.
 #'
 #' @return Invisibly returns the path to the written Excel workbook.
 #'
@@ -21,12 +37,30 @@
 #'
 #' @examples
 #' \dontrun{
+#' # Write questions without boxing
 #' write_onepulse(
 #'   data,
 #'   questions = paste0("q_", 1:6),
-#'   cross_vars = c("gender", "age_decile"),
-#'   file = "OnePulse_tables.xlsx",
-#'   box = FALSE
+#'   cross_vars = c("Gender", "Age Decile"),
+#'   file = "OnePulse_tables.xlsx"
+#' )
+#'
+#' # Box every recognized Likert question
+#' write_onepulse(
+#'   data,
+#'   questions = paste0("q_", 1:6),
+#'   cross_vars = c("Gender", "Age Decile"),
+#'   file = "OnePulse_tables_boxed.xlsx",
+#'   box = TRUE
+#' )
+#'
+#' # Box only selected questions
+#' write_onepulse(
+#'   data,
+#'   questions = paste0("q_", 1:6),
+#'   cross_vars = c("Gender", "Age Decile"),
+#'   file = "OnePulse_tables_selected.xlsx",
+#'   box = c("q_3", "q_5", "q_6")
 #' )
 #' }
 write_onepulse <- function(data, questions, cross_vars, file, box = FALSE) {
