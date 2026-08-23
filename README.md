@@ -4,8 +4,9 @@
 `GSPonepulse` provides a standardized workflow for importing, cleaning,
 enriching, analyzing, and exporting survey data from OnePulse.
 
-The package is designed to reduce repetitive survey-processing work and
-create consistent outputs across OnePulse studies.
+The package handles the repetitive parts of OnePulse analysis while
+producing consistent question summaries, crosstabs, significance
+testing, Excel workbooks, and presentation-ready `gt` tables.
 
 ## Installation
 
@@ -33,36 +34,41 @@ library(GSPonepulse)
 raw <- read_onepulse("data/survey.csv")
 
 # 2. Add standardized demographic variables
-raw_enriched <- enrich_onepulse(raw)
+enriched <- enrich_onepulse(raw)
 
 # 3. Clean question names and create the question table of contents
-clean <- clean_onepulse(raw_enriched)
+clean <- clean_onepulse(enriched)
 
-data <- clean$data
-toc  <- clean$toc
+data <- clean$survey
+toc <- clean$svy_q
 
 # 4. Create Excel summary tables
 write_onepulse(
   data,
   questions = paste0("q_", 1:6),
   cross_vars = c(
-    "Gender",
-    "Age Decile"
+    "gender",
+    "age_decile"
   ),
   file = "output/OnePulse_tables.xlsx"
 )
 ```
 
+Demographic enrichment should occur before cleaning because
+`clean_onepulse()` standardizes the column names in the final analysis
+data.
+
 ## Reading OnePulse data
 
-`read_onepulse()` reads OnePulse CSV exports and removes the export
-metadata rows before importing the respondent-level data.
+`read_onepulse()` imports a OnePulse CSV export while retaining survey
+metadata needed by downstream functions.
 
 ``` r
 raw <- read_onepulse("survey.csv")
 ```
 
-Multiple compatible exports can also be combined:
+If there are multiple surveys using the exact same question wording,
+they can be combined in a single call:
 
 ``` r
 raw <- read_onepulse(
@@ -74,31 +80,35 @@ raw <- read_onepulse(
 ```
 
 When multiple files are supplied, their column structures are checked
-before they are combined.
-
-Survey metadata, including the survey year, is retained for use by
-downstream functions.
+before the respondent records are combined. The survey year is stored as
+metadata for use by `enrich_onepulse()`.
 
 ## Enriching demographics
 
 `enrich_onepulse()` creates standardized analysis variables from the
-demographic fields included in OnePulse exports.
+demographic fields available in a OnePulse export.
 
 ``` r
-raw_enriched <- enrich_onepulse(raw)
+enriched <- enrich_onepulse(raw)
 ```
 
-Derived variables include commonly used demographic groupings such as
-age, generation, household income, political orientation, and other
-analysis-ready classifications.
+Depending on the fields available in the survey, derived variables can
+include:
+
+- age cohort and age decile;
+- generation;
+- education group;
+- household income group;
+- partisanship; and
+- standardized geographic and demographic factors.
 
 Generation is calculated using the survey year captured by
-`read_onepulse()` rather than the current calendar year.
+`read_onepulse()`, rather than the current calendar year.
 
 ## Cleaning survey data
 
-`clean_onepulse()` converts OnePulse question names into standardized
-identifiers.
+`clean_onepulse()` standardizes column names and converts OnePulse
+question names into concise identifiers.
 
 For example:
 
@@ -112,7 +122,7 @@ becomes:
 q_1
 ```
 
-and multi-select questions such as:
+Multi-select columns such as:
 
 ``` text
 Q(2_1) Innovative[Question: ...]
@@ -128,22 +138,24 @@ q_2_2
 q_2_3
 ```
 
-The function returns a named list:
+The function returns the cleaned survey and a de-duplicated question
+table of contents:
 
 ``` r
-clean <- clean_onepulse(raw_enriched)
+clean <- clean_onepulse(enriched)
 
-data <- clean$data
-toc  <- clean$toc
+data <- clean$survey
+toc <- clean$svy_q
 ```
 
-`toc` contains a de-duplicated table of question numbers and question
-wording.
+The table of contents is also retained as survey metadata so that
+`write_onepulse()` can place the full question wording at the top of
+each Excel worksheet.
 
 ## Summarizing questions
 
-`summarise_onepulse()` creates an overall summary for either a
-single-select or multi-select question.
+`summarise_onepulse()` creates an overall summary for a single-select or
+multi-select question.
 
 ``` r
 summarise_onepulse(
@@ -152,7 +164,7 @@ summarise_onepulse(
 )
 ```
 
-For multi-select questions, pass the question stem rather than an
+For a multi-select question, pass the question stem rather than an
 individual response column:
 
 ``` r
@@ -164,18 +176,14 @@ summarise_onepulse(
 
 The function automatically identifies all columns beginning with `q_2_`.
 
-For single-select questions, percentages sum to 100%.
+For single-select questions, percentages sum to 100%. For multi-select
+questions, each percentage represents the proportion of respondents
+selecting that option, so percentages may sum to more than 100%.
 
-For multi-select questions, each percentage represents the proportion of
-respondents selecting that option, so percentages may sum to more than
-100%.
-
-### Likert scales
+### Likert scales and box scores
 
 Known Likert-style response scales are automatically recognized and
 displayed in their intended ordinal order.
-
-For example:
 
 ``` text
 Strongly disagree
@@ -185,15 +193,26 @@ Agree
 Strongly agree
 ```
 
-The package maintains an internal dictionary of common agreement,
-familiarity, satisfaction, importance, frequency, likelihood,
-confidence, trust, safety, comfort, interest, appeal, relevance,
-believability, and other ordinal response scales.
+Set `box = TRUE` to collapse a recognized five-point Likert scale into
+`Top 2 Box`, `Middle`, and `Bottom 2 Box`:
+
+``` r
+summarise_onepulse(
+  data,
+  "q_3",
+  box = TRUE
+)
+```
+
+Only recognized five-point, single-select Likert questions are
+collapsed. Unrecognized scales and multi-select questions retain their
+original response format.
 
 ## Creating crosstabs
 
 `crosstab_onepulse()` creates a crosstab using a single-select grouping
-variable.
+variable. Both single-select and multi-select survey questions are
+supported.
 
 ``` r
 result <- crosstab_onepulse(
@@ -205,44 +224,44 @@ result <- crosstab_onepulse(
 result$table
 ```
 
-The function supports both single-select and multi-select survey
-questions.
-
 The returned object contains:
 
 ``` r
-result$table
-result$sig
-result$letters
-result$bases
+result$table # formatted crosstab
+result$sig # pairwise significance tests
+result$letters # column-letter lookup
+result$bases # respondent bases by group
+```
+
+Box scores can also be applied before the crosstab and significance
+tests are calculated:
+
+``` r
+result <- crosstab_onepulse(
+  data,
+  "q_3",
+  "generation",
+  box = TRUE
+)
 ```
 
 ### Significance testing
 
-Pairwise proportion tests are conducted within each response option.
+Pairwise proportion tests are conducted across crosstab groups within
+each response option. P-values are adjusted using the Holm method, with
+a default significance level of `alpha = 0.05`.
 
-P-values are adjusted using the Holm method, with a default significance
-threshold of:
-
-``` r
-alpha = 0.05
-```
-
-Significant differences are shown using column lettering.
-
-For example:
+Significant differences are shown using column letters:
 
 ``` text
-            A       B       C
-            Male    Female  Other
-
-Safe        35%     48% A   42%
+             Male (A)    Female (B)
+Safe             35%          48% A
 ```
 
 `48% A` indicates that the value in column B is significantly higher
 than the value in column A.
 
-The significance threshold can be changed if needed:
+The significance level can be changed when needed:
 
 ``` r
 crosstab_onepulse(
@@ -255,12 +274,8 @@ crosstab_onepulse(
 
 ## Writing Excel tables
 
-`write_onepulse()` creates a formatted Excel workbook containing the
-requested survey questions. When passing question numbers to
-`write_onepulse()` don’t pass through open end questions.
-
-For example, if `q_4` is an open end, then you would pass:
-`questions = paste0("q_", c(1:3,5:6))`
+`write_onepulse()` creates a formatted Excel workbook containing overall
+summaries and crosstabs for the requested questions.
 
 ``` r
 write_onepulse(
@@ -275,22 +290,177 @@ write_onepulse(
 )
 ```
 
-Each question receives its own worksheet.
+Each question receives its own worksheet containing:
 
-Within each worksheet, the output includes:
+1.  the full question wording;
+2.  an overall response summary;
+3.  one table for each requested crosstab;
+4.  column-letter keys for significance testing; and
+5.  respondent bases for each crosstab group.
 
-1.  Overall response summary
-2.  One table for each requested crosstab
-3.  Column-letter keys for significance testing
-4.  Respondent base sizes for each crosstab group
+Open-ended questions should generally be omitted from `questions`. For
+example, if `q_4` is open-ended:
+
+``` r
+questions <- paste0("q_", c(1:3, 5:6))
+```
+
+Set `box = TRUE` to box every recognized Likert question included in the
+workbook:
+
+``` r
+write_onepulse(
+  data,
+  questions = paste0("q_", 1:6),
+  cross_vars = c("gender", "age_decile"),
+  file = "OnePulse_tables_boxed.xlsx",
+  box = TRUE
+)
+```
+
+Alternatively, provide question identifiers to box only selected
+questions:
+
+``` r
+write_onepulse(
+  data,
+  questions = paste0("q_", 1:6),
+  cross_vars = c("gender", "age_decile"),
+  file = "OnePulse_tables.xlsx",
+  box = c("q_3", "q_5", "q_6")
+)
+```
+
+## Creating presentation-ready tables
+
+`gt_onepulse()` converts an existing summary or crosstab result into a
+formatted `gt` table.
+
+``` r
+summary_table <- summarise_onepulse(
+  data,
+  "q_3",
+  box = TRUE
+) |>
+  gt_onepulse(
+    title = "Q3. How likely are you to consider this product?",
+    subtitle = "Overall"
+  )
+```
+
+For crosstabs, significance letters and respondent bases carry through
+to the formatted table:
+
+``` r
+crosstab_table <- crosstab_onepulse(
+  data,
+  "q_3",
+  "generation",
+  box = TRUE
+) |>
+  gt_onepulse(
+    title = "Q3. How likely are you to consider this product?",
+    subtitle = "By generation"
+  )
+```
+
+The resulting table can be saved using `gt::gtsave()`:
+
+``` r
+gt::gtsave(
+  crosstab_table,
+  "q3_by_generation.png",
+  zoom = 2
+)
+```
+
+The `gt` package is required only for this optional table-formatting
+workflow.
+
+## Batch creation of `gt` tables
+
+The following code can be used to summarise, convert, and save each (non
+open-ended) question to a `gt` table in one consistent pipeline.
+
+Create the output directory beforehand:
+
+``` r
+dir.create(
+  "output/tables",
+  recursive = TRUE,
+  showWarnings = FALSE
+)
+```
+
+``` r
+paste0("q_", 1:3) |> # input the questions to work through
+  purrr::walk(\(question) {
+    toc <- attr(data, "question_toc")
+
+    title <- toc$question[
+      match(question, toc$q)
+    ]
+
+    summarise_onepulse(
+      data,
+      question,
+      box = TRUE
+    ) |>
+      gt_onepulse(
+        title = title,
+        subtitle = "Overall"
+      ) |>
+      gt::gtsave(
+        filename = paste0(
+          question,
+          "_overall.png"
+        ),
+        path = "output/tables",
+        zoom = 2
+      )
+  })
+```
+
+For crosstabs with significance lettering:
+
+``` r
+paste0("q_", 1:5) |>
+  purrr::walk(\(question) {
+    toc <- attr(data, "question_toc")
+
+    title <- toc$question[
+      match(question, toc$q)
+    ]
+
+    crosstab_onepulse(
+      data,
+      question,
+      cross = "generation",
+      box = TRUE
+    ) |>
+      gt_onepulse(
+        title = title,
+        subtitle = "By generation"
+      ) |>
+      gt::gtsave(
+        filename = paste0(
+          question,
+          "_by_generation.png"
+        ),
+        path = "output/tables",
+        zoom = 2
+      )
+  })
+```
 
 ## Main functions
 
 | Function | Purpose |
 |----|----|
 | `read_onepulse()` | Import one or more OnePulse CSV exports |
-| `clean_onepulse()` | Standardize survey question names and create a question TOC |
 | `enrich_onepulse()` | Create standardized demographic groupings |
+| `clean_onepulse()` | Standardize column names and create a question TOC |
 | `summarise_onepulse()` | Summarize single- or multi-select questions |
 | `crosstab_onepulse()` | Create crosstabs with significance testing |
 | `write_onepulse()` | Export formatted survey tables to Excel |
+| `gt_onepulse()` | Convert analysis output into a formatted `gt` table |
