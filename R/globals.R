@@ -32,5 +32,8 @@ utils::globalVariables(c(
   "hhi",
   "Combined household income",
   "Ethnicity",
-  "Home geography"
+  "Home geography",
+  "Education",
+  "Education group",
+  "Partisanship"
 ))
