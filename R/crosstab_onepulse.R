@@ -90,6 +90,16 @@ crosstab_onepulse <- function(data, q, cross, alpha = 0.05, box = FALSE) {
       call. = FALSE
     )
   }
+
+  factor_levels <- NULL
+
+  if (length(cols) == 1 && is.factor(data[[q]]) && !box) {
+    factor_levels <- levels(data[[q]]) |>
+      stringr::str_replace_all(";", ",") |>
+      match_likert(likert_dictionary) |>
+      as.character()
+  }
+
   # Build long counts --------------------------------------
 
   if (length(cols) == 1) {
@@ -170,10 +180,10 @@ crosstab_onepulse <- function(data, q, cross, alpha = 0.05, box = FALSE) {
 
   # Preserve Likert ordering -------------------------------
 
-  all_answers <- if (is.factor(long$answer)) {
-    levels(long$answer)
+  all_answers <- if (!is.null(factor_levels)) {
+    factor_levels
   } else {
-    unique(long$answer)
+    unique(as.character(long$answer))
   }
 
   all_groups <- unique(long[[cross]])

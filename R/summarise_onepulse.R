@@ -55,6 +55,16 @@ summarise_onepulse <- function(data, q, box = FALSE) {
     )
   }
 
+  # Preserve the original factor order for single-column questions
+  factor_levels <- NULL
+
+  if (length(cols) == 1 && is.factor(data[[cols]])) {
+    factor_levels <- levels(data[[cols]]) |>
+      stringr::str_replace_all(";", ",") |>
+      match_likert(likert_dictionary) |>
+      as.character()
+  }
+
   result <- if (length(cols) == 1) {
     data |>
       dplyr::transmute(
@@ -100,8 +110,15 @@ summarise_onepulse <- function(data, q, box = FALSE) {
       )
   }
 
-  if (is.factor(result$answer)) {
+  if (!is.null(factor_levels) && !box) {
     result |>
+      dplyr::mutate(
+        answer = factor(
+          answer,
+          levels = factor_levels,
+          ordered = TRUE
+        )
+      ) |>
       dplyr::arrange(answer)
   } else {
     result |>
