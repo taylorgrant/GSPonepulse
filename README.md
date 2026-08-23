@@ -42,7 +42,7 @@ clean <- clean_onepulse(enriched)
 data <- clean$survey
 toc <- clean$svy_q
 
-# 4. Create Excel summary tables
+# 4. Create Excel summary tables (do not include open ends!)
 write_onepulse(
   data,
   questions = paste0("q_", 1:6),
