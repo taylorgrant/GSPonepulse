@@ -9,18 +9,26 @@
 #' sum to more than 100 percent.
 #'
 #' Known Likert scales are automatically detected and displayed in their
-#' intended ordinal order.
+#' intended ordinal order. When `box = TRUE`, recognized five-point Likert
+#' scales in single-select questions are collapsed into `Top 2 Box`, `Middle`,
+#' and `Bottom 2 Box`. Unrecognized scales and multi-select questions are
+#' returned in their original format.
 #'
 #' @param data A cleaned OnePulse survey data frame, typically created by
 #'   [clean_onepulse()].
 #' @param q A character string identifying the question to summarize, such
 #'   as `"q_1"` or `"q_2"`.
+#' @param box Logical. If `TRUE`, recognized five-point Likert scales in
+#'   single-select questions are collapsed into `Top 2 Box`, `Middle`, and
+#'   `Bottom 2 Box`. Defaults to `FALSE`.
 #'
 #' @return A tibble containing:
 #' \describe{
-#'   \item{answer}{The response option.}
-#'   \item{n}{The number of respondents selecting the response option.}
-#'   \item{frac}{The proportion of respondents selecting the response option.}
+#'   \item{answer}{The response option or collapsed box category.}
+#'   \item{n}{The number of respondents selecting the response option or
+#'   falling within the box category.}
+#'   \item{frac}{The proportion of respondents selecting the response option
+#'   or falling within the box category.}
 #'   \item{total}{The respondent base used to calculate the proportion.}
 #' }
 #'
@@ -30,6 +38,7 @@
 #' \dontrun{
 #' summarise_onepulse(data, "q_1")
 #' summarise_onepulse(data, "q_2")
+#' summarise_onepulse(data, "q_2", box = TRUE)
 #' }
 summarise_onepulse <- function(data, q, box = FALSE) {
   cols <- names(data)[
@@ -46,7 +55,7 @@ summarise_onepulse <- function(data, q, box = FALSE) {
     )
   }
 
-  if (length(cols) == 1) {
+  result <- if (length(cols) == 1) {
     data |>
       dplyr::transmute(
         answer = .data[[cols]]
@@ -58,7 +67,7 @@ summarise_onepulse <- function(data, q, box = FALSE) {
           answer,
           likert_dictionary
         ),
-        answer = if (box && length(cols) == 1) {
+        answer = if (box) {
           collapse_likert(answer)
         } else {
           answer
@@ -88,6 +97,17 @@ summarise_onepulse <- function(data, q, box = FALSE) {
       dplyr::mutate(
         frac = n / nrow(data),
         total = nrow(data)
+      )
+  }
+
+  if (is.factor(result$answer)) {
+    result |>
+      dplyr::arrange(answer)
+  } else {
+    result |>
+      dplyr::arrange(
+        dplyr::desc(frac),
+        answer
       )
   }
 }
