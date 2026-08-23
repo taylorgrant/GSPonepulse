@@ -4,13 +4,13 @@
 \alias{crosstab_onepulse}
 \title{Create a OnePulse Crosstab}
 \usage{
-crosstab_onepulse(data, q, cross, alpha = 0.05)
+crosstab_onepulse(data, q, cross, alpha = 0.05, box = FALSE)
 }
 \arguments{
 \item{data}{A cleaned OnePulse survey data frame, typically created by
 \code{\link[=clean_onepulse]{clean_onepulse()}}.}
 
-\item{q}{A character string identifying the question to summarize, such
+\item{q}{A character string identifying the question to tabulate, such
 as \code{"q_1"} or \code{"q_2"}.}
 
 \item{cross}{A character string identifying the single-select variable
@@ -18,6 +18,10 @@ to use as the crosstab, such as \code{"Gender"} or \code{"Age Decile"}.}
 
 \item{alpha}{Numeric significance level used for pairwise proportion
 tests. Defaults to \code{0.05}.}
+
+\item{box}{Logical. If \code{TRUE}, recognized five-point Likert scales in
+single-select questions are collapsed into \verb{Top 2 Box}, \code{Middle}, and
+\verb{Bottom 2 Box}. Defaults to \code{FALSE}.}
 }
 \value{
 A named list containing:
@@ -30,6 +34,9 @@ Holm-adjusted p-values.}
 letters.}
 \item{bases}{The respondent base size for each crosstab group.}
 }
+
+The returned list has a \code{confidence_level} attribute equal to
+\code{1 - alpha}.
 }
 \description{
 Creates a crosstab for a OnePulse survey question by a single-select
@@ -38,13 +45,18 @@ are supported.
 }
 \details{
 For each response option, pairwise proportion tests are conducted across
-crosstab groups. P-values are adjusted for multiple comparisons using the
-Holm method. Significant differences are displayed using column letters,
-where a letter indicates that the proportion is significantly higher than
-the proportion in the referenced column.
+crosstab groups. P-values are adjusted for multiple comparisons within
+each response option using the Holm method. Significant differences are
+displayed using column letters, where a letter indicates that the
+proportion is significantly higher than the proportion in the referenced
+column.
 
 Known Likert scales are automatically detected and displayed in their
-intended ordinal order.
+intended ordinal order. When \code{box = TRUE}, recognized five-point Likert
+scales in single-select questions are collapsed into \verb{Top 2 Box}, \code{Middle},
+and \verb{Bottom 2 Box} before the significance tests are conducted.
+Unrecognized scales and multi-select questions are returned in their
+original format.
 }
 \examples{
 \dontrun{
@@ -56,5 +68,15 @@ result <- crosstab_onepulse(
 
 result$table
 result$bases
+
+boxed_result <- crosstab_onepulse(
+  data,
+  "q_3",
+  "Age Decile",
+  box = TRUE
+)
+
+boxed_result$table
+attr(boxed_result, "confidence_level")
 }
 }
